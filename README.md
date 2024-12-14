@@ -16,7 +16,7 @@
 composer require akbarali/nats-listener
 ```
 
-After installing Nats Listener, publish its assets using the nats:install Artisan command:
+After installing Nats Listener, publish its assets using the `nats:install` Artisan command:
 
 ```aiignore
 php artisan nats:install
