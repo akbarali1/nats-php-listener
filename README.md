@@ -1,4 +1,4 @@
-# Laravel NATS PHP listener
+# Laravel NATS PHP Listener
 
 # TODO
 
