@@ -56,21 +56,7 @@ class NatsChannelListener extends Command
 	{
 		$this->initRoutes();
 		$this->initCallback();
-		
-		$runningId = [getmypid()];
-		if (Cache::has('nats:channel:config')) {
-			$config     = Cache::get('nats:channel:config');
-			$processIds = $config['pids'] ?? null;
-			if ($processIds) {
-				$processIds = array_merge($processIds, $runningId);
-			}
-		} else {
-			$processIds = $runningId;
-		}
-		
-		Cache::put('nats:channel:config', [
-			'pids' => $processIds,
-		]);
+		$this->putCache();
 		
 		// флаг остановки
 		$shallStopWorking = false;
@@ -96,28 +82,53 @@ class NatsChannelListener extends Command
 			$this->client->subscribe($routeName, $this->callback);
 		}
 		
+		//dd($this->client->getSubscriptions());
 		$this->info("{$this->signature} - {$this->connectionName} -- started");
 		try {
 			while (!$shallStopWorking) {
 				pcntl_signal_dispatch();
 				$this->client->process();
 			}
-			$config     = Cache::get('nats:channel:config');
-			$processIds = $config['pids'] ?? [];
-			if (count($processIds) === 1) {
-				Cache::forget('nats:channel:config');
-			} else {
-				Cache::put('nats:channel:config', [
-					'pids' => array_filter($processIds, static fn($id): bool => $id !== $runningId[0]),
-				]);
-			}
 			$this->info("{$this->signature} - {$this->connectionName} -- end");
 		} catch (\Throwable $exception) {
 			Log::error($exception);
 			$this->error($exception->getMessage());
+			dump($exception);
 		} finally {
 			$this->client->disconnect();
+			$this->forgetCache(getmypid());
 		}
+	}
+	
+	protected function forgetCache(int $runningId): void
+	{
+		$config     = Cache::get('nats:channel:config');
+		$processIds = $config['pids'] ?? [];
+		if (count($processIds) === 1) {
+			Cache::forget('nats:channel:config');
+		} else {
+			Cache::put('nats:channel:config', [
+				'pids' => array_filter($processIds, static fn($id): bool => $id !== $runningId),
+			]);
+		}
+	}
+	
+	protected function putCache(): void
+	{
+		$runningId = [getmypid()];
+		if (Cache::has('nats:channel:config')) {
+			$config     = Cache::get('nats:channel:config');
+			$processIds = $config['pids'] ?? null;
+			if ($processIds) {
+				$processIds = array_merge($processIds, $runningId);
+			}
+		} else {
+			$processIds = $runningId;
+		}
+		
+		Cache::put('nats:channel:config', [
+			'pids' => $processIds,
+		]);
 	}
 	
 	protected function initCallback(): void
@@ -125,7 +136,7 @@ class NatsChannelListener extends Command
 		$this->callback = function (Payload $payload): Payload {
 			$locale      = $payload->getHeader('w-locale') ?? app()->getLocale();
 			$auth        = $payload->getHeader('w-auth');
-			$requestBody = json_decode($payload->body ?? "{}", true, 512, JSON_THROW_ON_ERROR);
+			$requestBody = json_decode($payload->body ?? "{}", true);
 			$route       = $payload->subject;
 			$params      = data_get($requestBody, 'params', []);
 			if (in_array($locale, $this->availableLocales->toArray(), true)) {

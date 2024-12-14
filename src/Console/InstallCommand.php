@@ -24,7 +24,7 @@ class InstallCommand extends Command
 	 *
 	 * @return void
 	 */
-	public function handle()
+	public function handle(): void
 	{
 		$this->components->info('Installing Nats Listener resources.');
 		collect([
@@ -33,17 +33,12 @@ class InstallCommand extends Command
 			'Routes'        => fn() => (int) $this->callSilent('vendor:publish', ['--tag' => 'nats-route']) === 0,
 		])->each(fn($task, $description) => $this->components->task($description, $task));
 		
-		$this->registerNatsServiceProvider();
+		//$this->registerNatsServiceProvider();
 		
 		$this->components->info('NATS Listener installed successfully.');
 	}
 	
-	/**
-	 * Register the Horizon service provider in the application configuration file.
-	 *
-	 * @return void
-	 */
-	protected function registerNatsServiceProvider()
+	protected function registerNatsServiceProvider(): void
 	{
 		$namespace = Str::replaceLast('\\', '', $this->laravel->getNamespace());
 		$provider  = NATSListenerProvider::class."::class";
@@ -62,10 +57,5 @@ class InstallCommand extends Command
 			));
 		}
 		
-		//		file_put_contents(app_path('Providers/NATSListenerProvider.php'), str_replace(
-		//			"namespace App\Providers;",
-		//			"namespace {$namespace}\Providers;",
-		//			file_get_contents(app_path('Providers/NATSListenerProvider.php'))
-		//		));
 	}
 }
