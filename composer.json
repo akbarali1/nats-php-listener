@@ -1,0 +1,42 @@
+{
+  "name":"akbarali/nats-listener",
+  "version":"0.1",
+  "description":"Laravel Nats Listener",
+  "license":"MIT",
+  "minimum-stability":"stable",
+  "keywords":[
+    "laravel",
+    "nats"
+  ],
+  "autoload":{
+    "psr-4":{
+      "Akbarali\\NatsListener\\":"src/"
+    }
+  },
+  "authors":[
+    {
+      "name":"Akbarali",
+      "email":"github@akbarali.uz",
+      "homepage":"https://github.com/akbarali1"
+    }
+  ],
+  "require":{
+    "php":">=8.0",
+    "basis-company/nats":"^0.26.2",
+    "ext-json":"*",
+    "ext-posix":"*",
+    "akbarali/action-data":"^1.3.0",
+    "akbarali/data-object":"^2.7.2",
+    "laravel/framework":"^9.0|^10.0|^11.0"
+  },
+  "require-dev":{
+    "roave/security-advisories":"dev-latest"
+  },
+  "extra":{
+    "laravel":{
+      "providers":[
+        "Akbarali\\NatsListener\\Providers\\NATSListenerProvider"
+      ]
+    }
+  }
+}
