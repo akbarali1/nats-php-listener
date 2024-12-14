@@ -56,6 +56,9 @@ class TerminateCommand extends Command
 			
 			if (!$result) {
 				$this->components->error("Failed to kill process: {$processId} (".posix_strerror(posix_get_last_error()).')');
+				Cache::put('nats:channel:config', [
+					'pids' => array_filter($processIds, static fn($id): bool => $id !== $processId),
+				]);
 			}
 		}
 	}

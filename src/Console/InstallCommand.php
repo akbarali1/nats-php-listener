@@ -26,11 +26,11 @@ class InstallCommand extends Command
 	 */
 	public function handle()
 	{
-		$this->components->info('Installing Horizon resources.');
-		
+		$this->components->info('Installing Nats Listener resources.');
 		collect([
 			'Configuration' => fn() => (int) $this->callSilent('vendor:publish', ['--tag' => 'nats-config']) === 0,
 			'Lang'          => fn() => (int) $this->callSilent('vendor:publish', ['--tag' => 'nats-lang']) === 0,
+			'Routes'        => fn() => (int) $this->callSilent('vendor:publish', ['--tag' => 'nats-route']) === 0,
 		])->each(fn($task, $description) => $this->components->task($description, $task));
 		
 		$this->registerNatsServiceProvider();
@@ -46,28 +46,26 @@ class InstallCommand extends Command
 	protected function registerNatsServiceProvider()
 	{
 		$namespace = Str::replaceLast('\\', '', $this->laravel->getNamespace());
-		$provider  = NATSListenerProvider::class;
+		$provider  = NATSListenerProvider::class."::class";
 		
 		if (file_exists($this->laravel->bootstrapPath('providers.php'))) {
-			ServiceProvider::addProviderToBootstrapFile($provider);
+			ServiceProvider::addProviderToBootstrapFile($provider.PHP_EOL);
 		} else {
 			$appConfig = file_get_contents(config_path('app.php'));
-			
-			if (Str::contains($appConfig, $namespace.'\\Providers\\NATSListenerProvider::class')) {
+			if (Str::contains($appConfig, $provider)) {
 				return;
 			}
-			
 			file_put_contents(config_path('app.php'), str_replace(
-				"{$namespace}\\Providers\EventServiceProvider::class,".PHP_EOL,
-				"{$namespace}\\Providers\EventServiceProvider::class,".PHP_EOL."        $provider,".PHP_EOL,
+				"{$namespace}\\Providers\RouteServiceProvider::class,".PHP_EOL,
+				"{$namespace}\\Providers\RouteServiceProvider::class,".PHP_EOL."        $provider,".PHP_EOL,
 				$appConfig
 			));
 		}
 		
-		file_put_contents(app_path('Providers/HorizonServiceProvider.php'), str_replace(
-			"namespace App\Providers;",
-			"namespace {$namespace}\Providers;",
-			file_get_contents(app_path('Providers/HorizonServiceProvider.php'))
-		));
+		//		file_put_contents(app_path('Providers/NATSListenerProvider.php'), str_replace(
+		//			"namespace App\Providers;",
+		//			"namespace {$namespace}\Providers;",
+		//			file_get_contents(app_path('Providers/NATSListenerProvider.php'))
+		//		));
 	}
 }

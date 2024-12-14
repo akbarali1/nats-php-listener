@@ -46,8 +46,6 @@ class NatsChannelListener extends Command
 				$this->client->setName($config['connection']['name']);
 			}
 		}
-		$this->initRoutes();
-		$this->initCallback();
 		parent::__construct();
 	}
 	
@@ -56,6 +54,9 @@ class NatsChannelListener extends Command
 	 */
 	public function handle(): void
 	{
+		$this->initRoutes();
+		$this->initCallback();
+		
 		$runningId = [getmypid()];
 		if (Cache::has('nats:channel:config')) {
 			$config     = Cache::get('nats:channel:config');
