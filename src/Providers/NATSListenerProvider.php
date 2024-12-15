@@ -3,8 +3,10 @@ declare(strict_types=1);
 
 namespace Akbarali\NatsListener\Providers;
 
+use Akbarali\NatsListener\Console\ContinueCommand;
 use Akbarali\NatsListener\Console\InstallCommand;
 use Akbarali\NatsListener\Console\NatsChannelListener;
+use Akbarali\NatsListener\Console\PauseCommand;
 use Akbarali\NatsListener\Console\TerminateCommand;
 use Illuminate\Contracts\Foundation\CachesRoutes;
 use Illuminate\Support\Facades\Route;
@@ -46,6 +48,8 @@ class NATSListenerProvider extends ServiceProvider
 				InstallCommand::class,
 				NatsChannelListener::class,
 				TerminateCommand::class,
+				PauseCommand::class,
+				ContinueCommand::class,
 			]);
 		}
 	}
