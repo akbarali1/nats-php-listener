@@ -4,6 +4,7 @@ namespace Akbarali\NatsListener\Console;
 
 use Akbarali\NatsListener\Dispatchers\NatsChannelDispatcher;
 use Akbarali\NatsListener\Exceptions\NatsException;
+use Akbarali\NatsListener\Managers\CacheManager;
 use Akbarali\NatsListener\Presenters\NatsApiResponse;
 use Basis\Nats\Client;
 use Basis\Nats\Configuration;
@@ -12,7 +13,6 @@ use Closure;
 use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -26,6 +26,7 @@ class NatsChannelListener extends Command
 	protected Client        $client;
 	protected Closure       $callback;
 	protected Collection    $availableLocales;
+	protected bool          $working        = true;
 	
 	#endregion
 	protected array $routes;
@@ -33,8 +34,9 @@ class NatsChannelListener extends Command
 	/**
 	 * @throws NatsException
 	 */
-	public function __construct()
-	{
+	public function __construct(
+		protected CacheManager $cacheManager
+	) {
 		$config                 = file_exists(config_path('nats.php')) ? require config_path('nats.php') : [];
 		$this->availableLocales = collect($config['available_locales'] ?? []);
 		$natsConfiguration      = $config['configuration'] ?? [];
@@ -56,22 +58,11 @@ class NatsChannelListener extends Command
 	{
 		$this->initRoutes();
 		$this->initCallback();
-		$this->putCache();
+		$this->cacheManager->setCache(getmypid());
 		
 		// флаг остановки
 		$shallStopWorking = false;
-		
-		// сигнал об остановке от supervisord
-		pcntl_signal(SIGTERM, function () use (&$shallStopWorking) {
-			$this->info("Received SIGTERM\n");
-			$shallStopWorking = true;
-		});
-		
-		// обработчик для ctrl+c
-		pcntl_signal(SIGINT, function () use (&$shallStopWorking) {
-			$this->info("Received SIGINT\n");
-			$shallStopWorking = true;
-		});
+		$this->listenForSignals($shallStopWorking);
 		
 		$routeNames = array_keys($this->routes);
 		if (count($routeNames) === 0) {
@@ -82,12 +73,13 @@ class NatsChannelListener extends Command
 			$this->client->subscribe($routeName, $this->callback);
 		}
 		
-		//dd($this->client->getSubscriptions());
 		$this->info("{$this->signature} - {$this->connectionName} -- started");
 		try {
 			while (!$shallStopWorking) {
 				pcntl_signal_dispatch();
-				$this->client->process();
+				if ($this->working) {
+					$this->client->process();
+				}
 			}
 			$this->info("{$this->signature} - {$this->connectionName} -- end");
 		} catch (\Throwable $exception) {
@@ -96,40 +88,42 @@ class NatsChannelListener extends Command
 			dump($exception);
 		} finally {
 			$this->client->disconnect();
-			$this->forgetCache(getmypid());
+			$this->cacheManager->forgetCache(getmypid());
 		}
 	}
 	
-	protected function forgetCache(int $runningId): void
+	protected function listenForSignals(bool &$shallStopWorking): void
 	{
-		$config     = Cache::get('nats:channel:config');
-		$processIds = $config['pids'] ?? [];
-		if (count($processIds) === 1) {
-			Cache::forget('nats:channel:config');
-		} else {
-			Cache::put('nats:channel:config', [
-				'pids' => array_filter($processIds, static fn($id): bool => $id !== $runningId),
-			]);
-		}
-	}
-	
-	protected function putCache(): void
-	{
-		$runningId = [getmypid()];
-		if (Cache::has('nats:channel:config')) {
-			$config     = Cache::get('nats:channel:config');
-			$processIds = $config['pids'] ?? null;
-			if ($processIds) {
-				$processIds = array_merge($processIds, $runningId);
-			}
-		} else {
-			$processIds = $runningId;
-		}
+		// сигнал об остановке от supervisord
+		pcntl_signal(SIGTERM, function () use (&$shallStopWorking) {
+			$this->info("Received SIGTERM\n");
+			$shallStopWorking = true;
+		});
 		
-		Cache::put('nats:channel:config', [
-			'pids' => $processIds,
-		]);
+		// Terminal o'chirilishi
+		pcntl_signal(SIGHUP, function () use (&$shallStopWorking) {
+			$this->info("Received SIGTERM\n");
+			$shallStopWorking = true;
+		});
+		
+		// обработчик для ctrl+c
+		pcntl_signal(SIGINT, function () use (&$shallStopWorking) {
+			$this->info("Received SIGINT\n");
+			$shallStopWorking = true;
+		});
+		
+		// Pause Process
+		pcntl_signal(SIGUSR2, function () {
+			$this->working = false;
+		});
+		
+		// Continue Process
+		pcntl_signal(SIGCONT, function () {
+			$this->working = true;
+		});
 	}
+	
+	protected function putCache(): void {}
 	
 	protected function initCallback(): void
 	{

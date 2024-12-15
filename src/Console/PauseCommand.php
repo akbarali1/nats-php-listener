@@ -5,7 +5,7 @@ namespace Akbarali\NatsListener\Console;
 use Akbarali\NatsListener\Managers\CacheManager;
 use Illuminate\Console\Command;
 
-class TerminateCommand extends Command
+class PauseCommand extends Command
 {
 	
 	public function __construct(
@@ -19,14 +19,14 @@ class TerminateCommand extends Command
 	 *
 	 * @var string
 	 */
-	protected $signature = 'nats:terminate';
+	protected $signature = 'nats:pause';
 	
 	/**
 	 * The console command description.
 	 *
 	 * @var string
 	 */
-	protected $description = 'Terminate the master supervisor so it can be restarted';
+	protected $description = 'Terminate the master supervisor so it can be pause';
 	
 	/**
 	 * Execute the console command.
@@ -46,11 +46,11 @@ class TerminateCommand extends Command
 		foreach ($processIds as $processId) {
 			$result = true;
 			$this->components->task("Process: $processId", function () use ($processId, &$result) {
-				return $result = posix_kill($processId, SIGTERM);
+				return $result = posix_kill($processId, SIGUSR2);
 			});
 			
 			if (!$result) {
-				$this->components->error("Failed to kill process: {$processId} (".posix_strerror(posix_get_last_error()).')');
+				$this->components->error("Failed to stop process: {$processId} (".posix_strerror(posix_get_last_error()).')');
 				$this->cacheManager->changeProcessId($processId);
 			}
 		}
