@@ -3,6 +3,7 @@
 namespace Akbarali\NatsListener\Console;
 
 use Akbarali\NatsListener\Dispatchers\NatsChannelDispatcher;
+use Akbarali\NatsListener\Exceptions\InternalException;
 use Akbarali\NatsListener\Exceptions\NatsException;
 use Akbarali\NatsListener\Managers\CacheManager;
 use Akbarali\NatsListener\Presenters\NatsApiResponse;
@@ -49,12 +50,28 @@ class NatsChannelListener extends Command
 		parent::__construct();
 	}
 	
-	public function createClient()
+	protected function createClient(): void
 	{
 		$this->client = new Client($this->configuration);
 		if (($this->connectionName) !== null) {
 			$this->client->setName($this->connectionName);
 		}
+	}
+	
+	/**
+	 * @throws NatsException
+	 */
+	protected function setSubscriptions(): void
+	{
+		$routeNames = array_keys($this->routes);
+		if (count($routeNames) === 0) {
+			throw NatsException::noRoutes();
+		}
+		
+		foreach ($routeNames as $routeName) {
+			$this->client->subscribe($routeName, $this->callback);
+		}
+		
 	}
 	
 	/**
@@ -69,15 +86,7 @@ class NatsChannelListener extends Command
 		// флаг остановки
 		$shallStopWorking = false;
 		$this->listenForSignals($shallStopWorking);
-		
-		$routeNames = array_keys($this->routes);
-		if (count($routeNames) === 0) {
-			throw NatsException::noRoutes();
-		}
-		
-		foreach ($routeNames as $routeName) {
-			$this->client->subscribe($routeName, $this->callback);
-		}
+		$this->setSubscriptions();
 		
 		$this->info("{$this->signature} - {$this->connectionName} -- started");
 		try {
@@ -121,14 +130,19 @@ class NatsChannelListener extends Command
 		pcntl_signal(SIGUSR2, function () {
 			$this->working = false;
 			$this->client->connection->close();
-			$this->info("Connection close");
+			$this->info("Connection close\n");
 		});
 		
 		// Continue Process
 		pcntl_signal(SIGCONT, function () {
-			$this->working = true;
-			$this->createClient();
-			$this->info("Connection open");
+			try {
+				$this->createClient();
+				$this->setSubscriptions();
+				$this->working = true;
+				$this->info("Connection open\n");
+			} catch (InternalException $e) {
+				$this->info("Connection open failed: ".$e->getMessage().PHP_EOL);
+			}
 		});
 	}
 	
