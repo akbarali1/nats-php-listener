@@ -71,7 +71,12 @@ class NatsChannelListener extends Command
 		foreach ($routeNames as $routeName) {
 			$this->client->subscribe($routeName, $this->callback);
 		}
-		
+	}
+	
+	protected function connect()
+	{
+		$this->createClient();
+		$this->setSubscriptions();
 	}
 	
 	/**
@@ -100,6 +105,7 @@ class NatsChannelListener extends Command
 		} catch (\Throwable $exception) {
 			Log::error($exception);
 			$this->error($exception->getMessage());
+			$this->info("{$this->signature} - {$this->connectionName} -- error: {$exception->getMessage()}");
 		} finally {
 			$this->client->disconnect();
 			$this->cacheManager->forgetCache(getmypid());
@@ -129,15 +135,14 @@ class NatsChannelListener extends Command
 		// Pause Process
 		pcntl_signal(SIGUSR2, function () {
 			$this->working = false;
-			$this->client->connection->close();
+			$this->client->disconnect();
 			$this->info("Connection close\n");
 		});
 		
 		// Continue Process
 		pcntl_signal(SIGCONT, function () {
 			try {
-				$this->createClient();
-				$this->setSubscriptions();
+				$this->connect();
 				$this->working = true;
 				$this->info("Connection open\n");
 			} catch (InternalException $e) {

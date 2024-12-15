@@ -4,12 +4,12 @@
 
 | Done ?               | Name                                                               | Version       |
 |:---------------------|:-------------------------------------------------------------------|:--------------|
+| :white_check_mark:   | Add command `nats:pause` and `nats:continue`.                      | In the future |
 | :white_large_square: | Writing documentation.                                             | In the future |
 | :white_large_square: | Write a Sender for this Listener.                                  | In the future |
 | :white_large_square: | Add middleware method.                                             | In the future |
 | :white_large_square: | Add Docs Auth Middleware.                                          | In the future |
 | :white_large_square: | Write error messages more clearly and translate them into English. | In the future |
-| :white_large_square: | Add command `nats:pause` and `nats:continue`.                      | In the future |
 
 # Install
 
@@ -36,6 +36,16 @@ This single command will start all the configured worker processes for the curre
 
 ```aiignore
 php artisan nats:listener
+```
+
+You may pause the Nats Listener process and instruct it to continue processing jobs using the `nats:pause` and `nats:continue` Artisan commands:
+
+```
+php artisan nats:pause
+```
+
+```aiignore
+php artisan nats:continue
 ```
 
 # Deploying Nats Listener
