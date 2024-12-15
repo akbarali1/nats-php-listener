@@ -19,14 +19,14 @@ use Illuminate\Support\Facades\Log;
 class NatsChannelListener extends Command
 {
 	#region Properties
-	protected               $signature      = 'nats:listener';
-	protected               $description    = 'Start to listening nats';
-	protected string        $connectionName = 'cabinet';
-	protected Configuration $connection;
+	protected               $signature   = 'nats:listener';
+	protected               $description = 'Start to listening nats';
+	protected string        $connectionName;
+	protected Configuration $configuration;
 	protected Client        $client;
 	protected Closure       $callback;
 	protected Collection    $availableLocales;
-	protected bool          $working        = true;
+	protected bool          $working     = true;
 	
 	#endregion
 	protected array $routes;
@@ -41,14 +41,20 @@ class NatsChannelListener extends Command
 		$this->availableLocales = collect($config['available_locales'] ?? []);
 		$natsConfiguration      = $config['configuration'] ?? [];
 		if (!app()->isLocal()) {
-			$this->connection = new Configuration($natsConfiguration);
-			$this->connection->setDelay($config['connection']['delay'] ?? 1);
-			$this->client = new Client($this->connection);
-			if (($config['connection']['name'] ?? null) !== null) {
-				$this->client->setName($config['connection']['name']);
-			}
+			$this->configuration = new Configuration($natsConfiguration);
+			$this->configuration->setDelay($config['connection']['delay'] ?? 1);
+			$this->connectionName = $config['connection']['name'] ?? null;
+			$this->createClient();
 		}
 		parent::__construct();
+	}
+	
+	public function createClient()
+	{
+		$this->client = new Client($this->configuration);
+		if (($this->connectionName) !== null) {
+			$this->client->setName($this->connectionName);
+		}
 	}
 	
 	/**
@@ -85,7 +91,6 @@ class NatsChannelListener extends Command
 		} catch (\Throwable $exception) {
 			Log::error($exception);
 			$this->error($exception->getMessage());
-			dump($exception);
 		} finally {
 			$this->client->disconnect();
 			$this->cacheManager->forgetCache(getmypid());
@@ -100,7 +105,7 @@ class NatsChannelListener extends Command
 			$shallStopWorking = true;
 		});
 		
-		// Terminal o'chirilishi
+		// Close Terminal
 		pcntl_signal(SIGHUP, function () use (&$shallStopWorking) {
 			$this->info("Received SIGTERM\n");
 			$shallStopWorking = true;
@@ -115,15 +120,17 @@ class NatsChannelListener extends Command
 		// Pause Process
 		pcntl_signal(SIGUSR2, function () {
 			$this->working = false;
+			$this->client->connection->close();
+			$this->info("Connection close");
 		});
 		
 		// Continue Process
 		pcntl_signal(SIGCONT, function () {
 			$this->working = true;
+			$this->createClient();
+			$this->info("Connection open");
 		});
 	}
-	
-	protected function putCache(): void {}
 	
 	protected function initCallback(): void
 	{
