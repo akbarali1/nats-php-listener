@@ -7,44 +7,36 @@ use Illuminate\Support\Facades\Cache;
 
 class CacheManager
 {
+	private const CACHE_KEY = 'nats:channel:config';
 	
 	public function setCache(int $pid): void
 	{
-		$runningId = [$pid];
-		if (Cache::has('nats:channel:config')) {
-			$processIds = $this->getProcessIds();
-			if (!empty($processIds)) {
-				$processIds = array_merge($processIds, $runningId);
-			}
-		} else {
-			$processIds = $runningId;
-		}
+		$processIds   = $this->getProcessIds();
+		$processIds[] = $pid;
 		
-		Cache::put('nats:channel:config', [
-			'pids' => $processIds,
-		]);
+		$this->updateCache(array_unique($processIds));
 	}
 	
 	public function forgetCache(int $runningId): void
 	{
 		$processIds = $this->getProcessIds();
-		if (count($processIds) === 0) {
+		
+		if (empty($processIds)) {
 			return;
 		}
 		
-		if (count($processIds) === 1) {
-			Cache::forget('nats:channel:config');
-			
-			return;
-		}
+		$filteredIds = array_filter($processIds, static fn($id) => $id !== $runningId);
 		
-		$this->changeProcessId($runningId);
+		if (empty($filteredIds)) {
+			Cache::forget(self::CACHE_KEY);
+		} else {
+			$this->updateCache($filteredIds);
+		}
 	}
-	
 	
 	public function getConfig(): array
 	{
-		return Cache::get('nats:channel:config', []);
+		return Cache::get(self::CACHE_KEY, []);
 	}
 	
 	public function getProcessIds(): array
@@ -52,11 +44,8 @@ class CacheManager
 		return $this->getConfig()['pids'] ?? [];
 	}
 	
-	public function changeProcessId(int $processId): void
+	private function updateCache(array $processIds): void
 	{
-		Cache::put('nats:channel:config', [
-			'pids' => array_filter($this->getProcessIds(), static fn($id): bool => $id !== $processId),
-		]);
+		Cache::put(self::CACHE_KEY, ['pids' => $processIds]);
 	}
-	
 }

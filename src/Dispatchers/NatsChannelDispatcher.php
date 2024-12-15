@@ -5,6 +5,7 @@ namespace Akbarali\NatsListener\Dispatchers;
 
 use Akbarali\ActionData\ActionDataBase;
 use Akbarali\ActionData\ActionDataException;
+use Akbarali\DataObject\DataObjectBase;
 use Akbarali\NatsListener\Contracts\NatsCommandContract;
 use Akbarali\NatsListener\Exceptions\InternalException;
 use Akbarali\NatsListener\Exceptions\NatsException;
@@ -43,66 +44,79 @@ readonly class NatsChannelDispatcher
 	public function call(): NatsApiResponse
 	{
 		try {
-			$route                   = $this->routes[$this->routeName] ?? throw NatsException::routeNotFound();
-			$service                 = $route['service'][0] ?? throw NatsException::serviceNotFound();
-			$method                  = $route['service'][1] ?? throw NatsException::serviceMethodNotFound();
-			$authenticationRequired  = $route['auth'] ?? false;
-			$interfaceImplementation = (new ReflectionClass($service))->implementsInterface(NatsCommandContract::class);
+			$route   = $this->routes[$this->routeName] ?? throw NatsException::routeNotFound();
+			$service = $route['service'][0] ?? throw NatsException::serviceNotFound();
+			$method  = $route['service'][1] ?? throw NatsException::serviceMethodNotFound();
 			
-			if (!$interfaceImplementation) {
+			if (!(new ReflectionClass($service))->implementsInterface(NatsCommandContract::class)) {
 				throw NatsException::serviceInterfaceNotImplemented();
 			}
 			
-			if ($authenticationRequired && is_null($this->auth)) {
+			if (($route['auth'] ?? false) && empty($this->auth)) {
 				throw NatsException::unauthenticatedRequest();
-			}
-			if (isset($route['parameterType'])) {
-				$value = null;
-				$class = new $route['parameterType'];
-				if ($class instanceof ActionDataBase) {
-					$value = $class::fromArray($this->params);
-				}
-				
-				return new NatsApiResponse(app()->make($service, $this->getAuthParam())->{$method}($value));
 			}
 			
 			$instance         = app()->make($service, $this->getAuthParam());
 			$reflection       = new ReflectionMethod($service, $method);
 			$reflectionParams = $reflection->getParameters();
-			$params           = [];
-			$paramsNotFilled  = [];
-			foreach ($reflectionParams as $reflectionParam) {
-				$defaultValue                        = $reflectionParam->isDefaultValueAvailable() ? $reflectionParam->getDefaultValue() : null;
-				$params[$reflectionParam->getName()] = $this->params[$reflectionParam->getName()] ?? $defaultValue;
-				if (!$reflectionParam->isOptional() && is_null($params[$reflectionParam->getName()])) {
-					$paramsNotFilled[] = $reflectionParam->getName().' is required';
+			
+			if (count($reflectionParams) === 1) {
+				$paramsType = $reflectionParams[0]->getType();
+				if ($paramsType && !$paramsType->isBuiltin()) {
+					$paramsClass = new ReflectionClass($paramsType->getName());
+					if ($paramsClass->isSubclassOf(ActionDataBase::class) || $paramsClass->isSubclassOf(DataObjectBase::class)) {
+						$value = $paramsType->getName()::fromArray($this->params);
+						
+						return new NatsApiResponse($instance->{$method}($value));
+					}
 				}
 			}
 			
-			if (count($paramsNotFilled) > 0) {
-				throw NatsException::invalidParams($paramsNotFilled);
-			}
+			$params = $this->prepareParams($reflectionParams);
 			
 			return new NatsApiResponse($reflection->invokeArgs($instance, $params));
-		} catch (BindingResolutionException|ReflectionException $exception) {
-			Log::error($exception);
-			
-			return NatsApiResponse::createNatsError(NatsException::reflectorError($exception->getMessage()));
-		} catch (ActionDataException $e) {
-			return NatsApiResponse::createNatsError(NatsException::actionDataError($e));
-		} catch (ValidationException $e) {
-			return NatsApiResponse::createNatsError(NatsException::validationError($e));
-		} catch (NatsException $e) {
-			Log::error($e);
-			
-			return NatsApiResponse::createNatsError($e);
-		} catch (InternalException $e) {
-			return NatsApiResponse::createInternalError($e);
 		} catch (Throwable $e) {
 			Log::error($e);
 			
-			return NatsApiResponse::createNatsError(NatsException::unknownError($e));
+			return $this->handleException($e);
 		}
+	}
+	
+	/**
+	 * @throws NatsException
+	 */
+	private function prepareParams(array $reflectionParams): array
+	{
+		$params          = [];
+		$paramsNotFilled = [];
+		
+		foreach ($reflectionParams as $reflectionParam) {
+			$defaultValue                        = $reflectionParam->isDefaultValueAvailable() ? $reflectionParam->getDefaultValue() : null;
+			$params[$reflectionParam->getName()] = $this->params[$reflectionParam->getName()] ?? $defaultValue;
+			
+			if (!$reflectionParam->isOptional() && is_null($params[$reflectionParam->getName()])) {
+				$paramsNotFilled[] = "{$reflectionParam->getName()} is required";
+			}
+		}
+		
+		if (!empty($paramsNotFilled)) {
+			throw NatsException::invalidParams($paramsNotFilled);
+		}
+		
+		return $params;
+	}
+	
+	private function handleException(Throwable $e): NatsApiResponse
+	{
+		return match (true) {
+			$e instanceof BindingResolutionException,
+				$e instanceof ReflectionException => NatsApiResponse::createNatsError(NatsException::reflectorError($e->getMessage())),
+			$e instanceof ActionDataException     => NatsApiResponse::createNatsError(NatsException::actionDataError($e)),
+			$e instanceof ValidationException     => NatsApiResponse::createNatsError(NatsException::validationError($e)),
+			$e instanceof NatsException           => NatsApiResponse::createNatsError($e),
+			$e instanceof InternalException       => NatsApiResponse::createInternalError($e),
+			default                               => NatsApiResponse::createNatsError(NatsException::unknownError($e)),
+		};
 	}
 }
 

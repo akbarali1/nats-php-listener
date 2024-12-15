@@ -1,52 +1,68 @@
 <?php
 
 return [
-	#region 3000 NATS
+	'-1000' => [
+		"message"     => "Unknown exception",
+		"description" => "An unidentified exception occurred.",
+	],
 	'-3000' => [
-		"message"     => "Service topilmadi",
-		"description" => "NATS routesida service topilmadi",
+		"message"     => "NATS service not found",
+		"description" => "The requested NATS service could not be located.",
 	],
 	'-3001' => [
-		"message"     => "Bunday subscribe topilmadi",
-		"description" => "NATS routesida route topilmad",
+		"message"     => "NATS route not found",
+		"description" => "The specified route does not exist in NATS routes.",
 	],
 	'-3002' => [
-		"message"     => "NATSda parametrlar yetishmayapti",
-		"description" => "NATSda noto‘g’ri parametrlar berilgan",
+		"message"     => "Invalid parameters",
+		"description" => "The provided parameters are invalid or incomplete for the NATS request.",
 	],
 	'-3003' => [
-		"message"     => "NATS Reflector error",
-		"description" => "NATSda Reflector error",
+		"message"     => "Reflector error",
+		"description" => "An error occurred while reflecting the NATS service or method.",
 	],
 	'-3004' => [
-		"description" => "ActionDataga solishdan oldin BaseActionData qaytargan xatolik bu.",
+		"message"     => "Action data error",
+		"description" => "The provided action data is invalid or failed validation.",
 	],
 	'-3005' => [
-		"description" => "Tizimda nosozlik kuzatilmoqda. Iltimos call-markaziga murojaat qiling +998 55 500 75 00.",
+		"message"     => "Unknown NATS error",
+		"description" => "An unidentified error occurred during the NATS operation.",
 	],
 	'-3006' => [
-		"message"     => "Method not found",
-		"description" => "NATS routedagi Servicedagi method topilmadi",
+		"message"     => "NATS service method not found",
+		"description" => "The specified method does not exist in the NATS service.",
 	],
 	'-3007' => [
-		"message"     => "Request method not found",
-		"description" => "NATS so‘rovida method topilmadi",
+		"message"     => "NATS request method not found",
+		"description" => "The requested NATS method could not be found.",
 	],
 	'-3008' => [
 		"message"     => "Service interface not implemented",
-		"description" => "CLASSga NatsCommandContract interfeysini implement qilinmagan",
+		"description" => "The NATS service does not implement the required interface.",
 	],
 	'-3009' => [
-		"message"     => "Unauthenticated Request",
-		"description" => "NATSda autentifikatsiya uchun ma'lumotlar yuborilmagan",
+		"message"     => "Unauthenticated request",
+		"description" => "The NATS request requires authentication, but none was provided.",
 	],
 	'-3010' => [
-		"message"     => "NATS yo‘nalish fayli topilmadi",
-		"description" => "NATS yo‘nalish fayli mavjud emas",
+		"message"     => "Route file not found",
+		"description" => "The NATS route configuration file is missing.",
+	],
+	'-3011' => [
+		"message"     => "Response error",
+		"description" => "An error occurred while processing the NATS response.",
+	],
+	'-3012' => [
+		"message"     => "Config name not set",
+		"description" => "The NATS configuration name has not been specified.",
 	],
 	'-3013' => [
-		"message"     => "Supprt qilinmayotgan funksiyaga qo'ng'iroq",
-		"description" => "Bu xatolik chiqsa bu chaqirilgan funksiya allaqachon supprotdan tugaganligini bildiradi va tepadagi yozilgan komentdagi @see ga qarash maslahat beriladi.",
+		"message"     => "Function not supported",
+		"description" => "The requested NATS function is not supported.",
 	],
-	#endregion
+	'-3014' => [
+		"message"     => "No routes available",
+		"description" => "No routes are defined or available for NATS.",
+	],
 ];
