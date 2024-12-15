@@ -9,6 +9,7 @@
 | :white_large_square: | Add middleware method.                                             | In the future |
 | :white_large_square: | Add Docs Auth Middleware.                                          | In the future |
 | :white_large_square: | Write error messages more clearly and translate them into English. | In the future |
+| :white_large_square: | Add command `nats:pause` and `nats:continue`.                      | In the future |
 
 # Install
 
@@ -24,14 +25,45 @@ php artisan nats:install
 
 # Configuration
 
-After publishing Nats Listener's assets, its primary configuration file will be located at `config/nats.php`. This configuration file allows you to configure the queue worker options for your application. Each configuration option includes a description of its purpose, so be sure to thoroughly explore this file.
+After publishing Nats Listener's assets, its primary configuration file will be located at `config/nats.php`.
+This configuration file allows you to configure the queue worker options for your application.
+Each configuration option includes a description of its purpose, so be sure to thoroughly explore this file.
+
+# Running Nats Listener
+
+Once you have configured your supervisors and workers in your application's `config/nats.php` configuration file, you may start Nats Listener using the `nats:listener` Artisan command.
+This single command will start all the configured worker processes for the current environment:
+
+```aiignore
+php artisan nats:listener
+```
 
 # Deploying Nats Listener
 
-When you're ready to deploy Horizon to your application's actual server, you should configure a process monitor to monitor the php artisan horizon command and restart it if it exits unexpectedly. Don't worry, we'll discuss how to install a process monitor below.
-
-During your application's deployment process, you should instruct the Horizon process to terminate so that it will be restarted by your process monitor and receive your code changes:
+When you're ready to deploy Nats Listener to your application's actual server, you should configure a process monitor to monitor the php artisan Nats Listener command and restart it if it exits unexpectedly.
+Don't worry, we'll discuss how to install a process monitor below.
+During your application's deployment process, you should instruct the Nats Listener process to terminate so that it will be restarted by your process monitor and receive your code changes:
 
 ```
 php artisan nats:terminate
+```
+
+# Supervisor Configuration
+
+Supervisor configuration files are typically stored within your server's `/etc/supervisor/conf.d` directory.
+Within this directory, you may create any number of configuration files that instruct supervisor how your processes should be monitored.
+For example, let's create a `nats.conf` file that starts and monitors a nats listener process:
+
+```
+[program:nats_listener]
+process_name=%(program_name)s_%(process_num)02d
+command=php /var/www/artisan nats:listener
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+numprocs=1
+user=forge
+redirect_stderr=true
+stdout_logfile=/var/www/supervisor/nats_listener_queue.log
 ```
