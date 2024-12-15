@@ -26,7 +26,7 @@ class PauseCommand extends Command
 	 *
 	 * @var string
 	 */
-	protected $description = 'Terminate the master supervisor so it can be pause';
+	protected $description = 'Pause a supervisor';
 	
 	/**
 	 * Execute the console command.

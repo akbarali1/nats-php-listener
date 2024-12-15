@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Akbarali\NatsListener\Providers;
 
 use Akbarali\NatsListener\Console\ContinueCommand;
+use Akbarali\NatsListener\Console\InfoCommand;
 use Akbarali\NatsListener\Console\InstallCommand;
 use Akbarali\NatsListener\Console\NatsChannelListener;
 use Akbarali\NatsListener\Console\PauseCommand;
@@ -50,6 +51,7 @@ class NATSListenerProvider extends ServiceProvider
 				TerminateCommand::class,
 				PauseCommand::class,
 				ContinueCommand::class,
+				InfoCommand::class,
 			]);
 		}
 	}

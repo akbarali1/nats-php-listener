@@ -5,7 +5,7 @@ namespace Akbarali\NatsListener\Console;
 use Akbarali\NatsListener\Managers\CacheManager;
 use Illuminate\Console\Command;
 
-class ContinueCommand extends Command
+class InfoCommand extends Command
 {
 	
 	public function __construct(
@@ -19,14 +19,14 @@ class ContinueCommand extends Command
 	 *
 	 * @var string
 	 */
-	protected $signature = 'nats:continue';
+	protected $signature = 'nats:info';
 	
 	/**
 	 * The console command description.
 	 *
 	 * @var string
 	 */
-	protected $description = 'Instruct the master supervisor to continue processing jobs';
+	protected $description = 'Terminate the master supervisor so it can be pause';
 	
 	/**
 	 * Execute the console command.
@@ -44,15 +44,7 @@ class ContinueCommand extends Command
 		}
 		
 		foreach ($processIds as $processId) {
-			$result = true;
-			$this->components->task("Process: $processId", function () use ($processId, &$result) {
-				return $result = posix_kill($processId, SIGCONT);
-			});
-			
-			if (!$result) {
-				$this->components->error("Failed to continue process: {$processId} (".posix_strerror(posix_get_last_error()).')');
-				$this->cacheManager->changeProcessId($processId);
-			}
+		
 		}
 	}
 }
