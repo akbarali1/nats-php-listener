@@ -5,4 +5,5 @@ namespace Akbarali\NatsListener\Contracts;
 
 interface NatsCommandContract
 {
+	public function handle();
 }
