@@ -4,8 +4,8 @@
 
 | Done ?               | Name                                                               | Version       |
 |:---------------------|:-------------------------------------------------------------------|:--------------|
-| :white_check_mark:   | Add command `nats:pause` and `nats:continue`.                      | In the future |
-| :white_check_mark:   | Write error messages more clearly and translate them into English. | In the future |
+| :white_check_mark:   | Add command `nats:pause` and `nats:continue`.                      | 0.1.5         |
+| :white_check_mark:   | Write error messages more clearly and translate them into English. | 0.1.7         |
 | :white_large_square: | Writing documentation.                                             | In the future |
 | :white_large_square: | Write a Sender for this Listener.                                  | In the future |
 | :white_large_square: | Add middleware method.                                             | In the future |
