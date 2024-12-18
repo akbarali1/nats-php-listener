@@ -32,13 +32,10 @@ class NatsChannelListener extends Command
 	#endregion
 	protected array $routes;
 	
-	/**
-	 * @throws NatsException
-	 */
 	public function __construct(
 		protected CacheManager $cacheManager
 	) {
-		$config                 = file_exists(config_path('nats.php')) ? require config_path('nats.php') : [];
+		$config                 = config('nats', []);
 		$this->availableLocales = collect($config['available_locales'] ?? []);
 		$natsConfiguration      = $config['configuration'] ?? [];
 		if (!app()->isLocal()) {

@@ -1,6 +1,6 @@
 {
   "name":"akbarali/nats-listener",
-  "version":"0.1.9",
+  "version":"0.1.10",
   "description":"Laravel Nats Listener",
   "license":"MIT",
   "minimum-stability":"stable",
