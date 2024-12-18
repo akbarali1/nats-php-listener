@@ -24,7 +24,7 @@ readonly class NatsChannelDispatcher
 		protected mixed $auth,
 		protected string $routeName,
 		protected array $routes,
-		protected array $params = []
+		protected mixed $params = []
 	) {}
 	
 	protected function getAuthParam(): array
@@ -73,6 +73,9 @@ readonly class NatsChannelDispatcher
 			}
 			
 			$params = $this->prepareParams($reflectionParams);
+			if (empty($params)) {
+				$params = is_array($this->params) ? $this->params : [$this->params];
+			}
 			
 			return new NatsApiResponse($reflection->invokeArgs($instance, $params));
 		} catch (Throwable $e) {

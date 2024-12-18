@@ -154,11 +154,14 @@ class NatsChannelListener extends Command
 	protected function initCallback(): void
 	{
 		$this->callback = function (Payload $payload): Payload {
-			$locale      = $payload->getHeader('w-locale') ?? app()->getLocale();
-			$auth        = $payload->getHeader('w-auth');
-			$requestBody = json_decode($payload->body ?? "{}", true);
-			$route       = $payload->subject;
-			$params      = data_get($requestBody, 'params', []);
+			$locale = $payload->getHeader('w-locale') ?? app()->getLocale();
+			$auth   = $payload->getHeader('w-auth');
+			try {
+				$params = json_decode($payload->body ?? "{}", true, 512, JSON_THROW_ON_ERROR);
+			} catch (\Throwable $t) {
+				$params = $payload->body;
+			}
+			$route = $payload->subject;
 			if (in_array($locale, $this->availableLocales->toArray(), true)) {
 				app()->setLocale($locale);
 			} else {
