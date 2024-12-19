@@ -81,6 +81,7 @@ stdout_logfile=/var/www/supervisor/nats_listener_queue.log
 # Emotional Damage
 
 I originally wrote this package because RabbitMQ was slow and had a lot of issues with our entire project.
+I thought NATS would be faster and more reliable.
 But in the end, it turned out that RabbitMQ is 25% faster.
 
 ![alt text](/art/emotional-damage.gif)
