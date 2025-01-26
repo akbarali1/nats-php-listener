@@ -21,7 +21,7 @@
     }
   ],
   "require":{
-    "php":">=8.0",
+    "php":">=8.2",
     "ext-pcntl":"*",
     "basis-company/nats":"^0.26.2",
     "ext-json":"*",
